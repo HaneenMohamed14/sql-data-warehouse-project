@@ -69,7 +69,7 @@ Main responsibilities:
 * Raw data storage
 * Initial ingestion
 * Preserving source-level values
-* Incremental full-row loading using `EXCEPT`
+* ILoading new distinct full rows from the Staging layer using `EXCEPT`
 
 ---
 
@@ -146,10 +146,10 @@ The project includes reusable SQL views for:
 Includes:
 
 * Total Orders
-* Total Revenue
+* Total Sales
 * Total Profit
+* Total Quantity
 * Profit Margin %
-* Average Order Value
 
 ### Customer Segment KPI
 
@@ -157,11 +157,12 @@ Includes:
 
 Includes:
 
-* Unique Customers
+* Total Customers
 * Total Orders
-* Total Revenue
+* Total Sales
 * Total Profit
-* Revenue per Customer
+* Total Quantity
+* Profit Margin %
 
 ### Product Category KPI
 
@@ -169,10 +170,12 @@ Includes:
 
 Includes:
 
-* Total Revenue
+* Total Products
+* Total Quantity
+* Total Sales
 * Total Profit
+* Average Discount
 * Profit Margin %
-* Units Sold
 
 ---
 
@@ -182,15 +185,15 @@ The project includes reusable stored procedures for parameterized analysis.
 
 ### `gold.sp_kpi_by_year_range`
 
-Returns monthly KPIs for a specified year range.
+Returns annual KPIs for a specified year range.
 
 ### `gold.sp_top_products_by_profit`
 
-Returns the top N products by total profit, with optional category filtering.
+Returns the top N products ranked by total profit.
 
 ### `gold.sp_customer_kpi_lookup`
 
-Returns a customer's sales profile and assigns a CASE-based customer tier.
+Returns customer-level KPIs including total orders, sales, quantity, profit, and profit margin.
 
 ---
 
@@ -212,7 +215,6 @@ The project contains **20 analytical SQL queries** covering:
 * Product profitability
 * Discount impact
 * Shipping performance
-* State-level performance
 * Category contribution
 * Multi-item order analysis
 
@@ -224,31 +226,28 @@ The project also includes a performance optimization section.
 
 ### Indexing
 
-Indexes were created on frequently used fact-table foreign keys:
+Indexes were created to improve query performance on frequently used columns:
 
-* `customer_key`
-* `product_key`
-* `location_key`
+* `gold.fact_sales(order_date_key)`
+* `gold.fact_sales(customer_key)`
+* `gold.fact_sales(product_key)`
+* `gold.dim_customer(customer_id)`
+* `gold.dim_product(product_id)`
+
+A composite covering index was also created on:
+
 * `order_date_key`
-* `ship_date_key`
-* `ship_mode_key`
-* `order_id`
+* `product_key`
 
-Additional composite indexes were created for common filtering and grouping patterns.
+with included columns:
 
-A covering index was also created for the monthly KPI workload.
-
+* `sales`
+* `quantity`
+* `discount`
+* `profit`
 ### Performance Analysis
 
-SQL Server execution plans and:
-
-```sql
-SET STATISTICS IO ON;
-SET STATISTICS TIME ON;
-```
-
-were used to examine query performance before and after indexing.
-
+`SET STATISTICS IO` and `SET STATISTICS TIME` were used to inspect query performance and resource usage.
 ---
 
 ## 🛠️ Technologies
@@ -264,9 +263,10 @@ were used to examine query performance before and after indexing.
 ## 📁 Repository Structure
 
 ```text
-Central-Superstore-Data-Warehouse/
+sql-data-warehouse-project/
 │
 ├── README.md
+├── LICENSE
 │
 ├── sql/
 │   ├── 01_database_and_schemas.sql
@@ -281,8 +281,15 @@ Central-Superstore-Data-Warehouse/
 │   └── 10_optimization.sql
 │
 ├── data/
+│   ├── Central_Superstore.csv
+│   └── README.md
+│
 ├── documentation/
+│   └── data_warehouse_architecture.png
+│
 └── screenshots/
+    ├── gold_star_schema.png
+    └── query_results.png
 ```
 
 ---
